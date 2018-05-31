@@ -12,21 +12,26 @@ public class CpuPaddleManager : MonoBehaviour
     /// Gameplay game object
     /// </summary>
     [SerializeField] private GameObject _game;
-    
+
+    /// <summary>
+    /// Ball game object
+    /// </summary>
+    [SerializeField] private GameObject _ball;
+
     /// <summary>
     /// Start Position
     /// </summary>
     private readonly Vector2 _startingPosition = new Vector2(13, 0);
 
     /// <summary>
-    /// Ball game object
-    /// </summary>
-    private GameObject _ball;
-
-    /// <summary>
     /// Gameplay manager
     /// </summary>
     private GamePlayManager _gamePlayManager;
+
+    /// <summary>
+    /// Cpu paddle attributes
+    /// </summary>
+    public PaddleAttrs CpuPaddleAttrs;
 
     /// <summary>
     /// Init metod
@@ -35,8 +40,14 @@ public class CpuPaddleManager : MonoBehaviour
     {
         _gamePlayManager = _game.GetComponent<GamePlayManager>();
         transform.localPosition = _startingPosition;
+
+        CpuPaddleAttrs.Height = transform.GetComponent<SpriteRenderer>().bounds.size.y;
+        CpuPaddleAttrs.Widht = transform.GetComponent<SpriteRenderer>().bounds.size.x;
+
+        CpuPaddleAttrs.MaxX = transform.localPosition.x - CpuPaddleAttrs.Widht / 2;
+        CpuPaddleAttrs.MinX = transform.localPosition.x + CpuPaddleAttrs.Widht / 2;
     }
-    
+
     /// <summary>
     /// Update is called once per frame
     /// </summary>
@@ -46,6 +57,12 @@ public class CpuPaddleManager : MonoBehaviour
         {
             CpuMovePaddle();
         }
+    }
+
+    public void InitVerticalParams()
+    {
+        CpuPaddleAttrs.MaxY = transform.localPosition.y + CpuPaddleAttrs.Height / 2;
+        CpuPaddleAttrs.MinY = transform.localPosition.y - CpuPaddleAttrs.Height / 2;
     }
 
     /// <summary>
@@ -73,21 +90,16 @@ public class CpuPaddleManager : MonoBehaviour
     /// </summary>
     private void CpuMovePaddle()
     {
-        if (!_ball)
-        {
-            _ball = GameObject.FindGameObjectWithTag("ball");
-        }
-
         if (_ball.GetComponent<BallManager>().BallDirection != Vector2.right) return;
-        
+
         var ballPos = _ball.transform.localPosition;
 
-        if (transform.localPosition.y > Model.Config.BottonBounds && ballPos.y < transform.localPosition.y)
+        if (transform.localPosition.y > Config.BottonBounds && ballPos.y < transform.localPosition.y)
         {
             transform.localPosition += new Vector3(0, -_moveSpeed * Time.deltaTime, 0);
         }
 
-        if (transform.localPosition.y < Model.Config.TopBounds && ballPos.y > transform.localPosition.y)
+        if (transform.localPosition.y < Config.TopBounds && ballPos.y > transform.localPosition.y)
         {
             transform.localPosition += new Vector3(0, _moveSpeed * Time.deltaTime, 0);
         }

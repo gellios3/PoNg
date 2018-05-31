@@ -37,7 +37,7 @@ public class GamePlayManager : MonoBehaviour
     /// <summary>
     /// Ball Game onject
     /// </summary>
-    private GameObject _ball;
+    [SerializeField] private GameObject _ball;
 
     /// <summary>
     /// CPU Score
@@ -141,8 +141,9 @@ public class GamePlayManager : MonoBehaviour
     /// </summary>
     private void SpawnBall()
     {
-        _ball = Instantiate((GameObject) Resources.Load("Prefabs/Ball", typeof(GameObject)));
+        _ball.SetActive(true);
         _ball.transform.localPosition = new Vector3(12, 0, -2);
+        _ball.GetComponent<BallManager>().BallMoveSpeed = 12f;
     }
 
     /// <summary>
@@ -177,7 +178,6 @@ public class GamePlayManager : MonoBehaviour
         _cpuPaddle.GetComponent<CpuPaddleManager>().ResetMoveSpeed();
         _cpuPaddle.GetComponent<CpuPaddleManager>().IncreaceMoveSpeedBy(_cpuScore + _playerScore);
 
-        Destroy(_ball.gameObject);
         SpawnBall();
         _ball.GetComponent<BallManager>().BallMoveSpeed += _cpuScore + _playerScore;
     }
@@ -190,11 +190,13 @@ public class GamePlayManager : MonoBehaviour
         if (GameState == GameStateEnum.Paused)
         {
             GameState = GameStateEnum.Playing;
+            _ball.SetActive(true);
             _hudManager.PlayAgain.transform.parent.gameObject.SetActive(false);
         }
         else
         {
             GameState = GameStateEnum.Paused;
+            _ball.SetActive(false);
             _hudManager.PlayAgain.transform.parent.gameObject.SetActive(true);
             _hudManager.PlayAgain.text = "GAME IS PAUSED PRESS SPACE TO CONTINUE";
         }
@@ -205,7 +207,7 @@ public class GamePlayManager : MonoBehaviour
     /// </summary>
     private void GameOver()
     {
-        Destroy(_ball.gameObject);
+        _ball.SetActive(false);
 
         _cpuPaddle.GetComponent<CpuPaddleManager>().ResetMoveSpeed();
 

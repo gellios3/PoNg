@@ -1,4 +1,5 @@
-﻿using Model;
+﻿using System;
+using Model;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -7,7 +8,7 @@ public class BallManager : MonoBehaviour
     /// <summary>
     /// Ball Move speed
     /// </summary>
-    [SerializeField] private float _ballMoveSpeed = 12f;
+    [SerializeField] private float _ballMoveSpeed = Config.DefaultBallSpeed;
 
     public float BallMoveSpeed
     {
@@ -26,63 +27,41 @@ public class BallManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Game Play
+    /// </summary>
+    [SerializeField] private GameObject _gamePlay;
+
+    /// <summary>
     /// Speed increace timer
     /// </summary>
     private float _speedIncreaseTimer;
 
-    private float _ballWidth, _ballHeight;
-
-    private GameObject _playerPaddle, _cpuPaddle;
-
+    /// <summary>
+    /// Bounce angle
+    /// </summary>
     private float _bounceAngle;
 
+    /// <summary>
+    /// Vector X Y 
+    /// </summary>
     private float _vx, _vy;
 
-    private const float MaxAngle = 45;
+    /// <summary>
+    /// Gameplay manager
+    /// </summary>
+    public GamePlayManager PlayManager { get; private set; }
 
-    private bool _collidedWithPlayer, _collidedWithAi, _collidedWithWall;
-
-    private GamePlayManager _gamePlayManager;
-
-    private bool _isAssingnedPoint;
-
-    private PaddleAttrs _playerPaddleAttrs;
-    private PaddleAttrs _cpuPaddleAttrs;
-
-    // Use this for initialization
+    /// <summary>
+    /// Initialization
+    /// </summary>
     private void Start()
     {
-        _gamePlayManager = GameObject.Find("GamePlay").GetComponent<GamePlayManager>();
+        PlayManager = _gamePlay.GetComponent<GamePlayManager>();
 
         if (BallMoveSpeed < 0)
         {
             BallMoveSpeed = -1 * BallMoveSpeed;
         }
-
-        _playerPaddle = GameObject.Find("PlayelPaddle");
-        _cpuPaddle = GameObject.Find("CpuPaddle");
-
-        var playerSprite = _playerPaddle.transform.GetComponent<SpriteRenderer>();
-        var aiSprite = _cpuPaddle.transform.GetComponent<SpriteRenderer>();
-        var ballSprite = transform.GetComponent<SpriteRenderer>();
-
-        _playerPaddleAttrs.State = GamePlayManager.PaddleState.Player;
-        _cpuPaddleAttrs.State = GamePlayManager.PaddleState.Cpu;
-
-        _playerPaddleAttrs.Height = playerSprite.bounds.size.y;
-        _playerPaddleAttrs.Widht = playerSprite.bounds.size.x;
-
-        _cpuPaddleAttrs.Height = aiSprite.bounds.size.y;
-        _cpuPaddleAttrs.Widht = aiSprite.bounds.size.x;
-
-        _ballHeight = ballSprite.bounds.size.y;
-        _ballWidth = ballSprite.bounds.size.x;
-
-        _playerPaddleAttrs.MaxX = _playerPaddle.transform.localPosition.x + _playerPaddleAttrs.Widht / 2;
-        _playerPaddleAttrs.MinX = _playerPaddle.transform.localPosition.x - _playerPaddleAttrs.Widht / 2;
-
-        _cpuPaddleAttrs.MaxX = _cpuPaddle.transform.localPosition.x - _cpuPaddleAttrs.Widht / 2;
-        _cpuPaddleAttrs.MinX = _cpuPaddle.transform.localPosition.x + _cpuPaddleAttrs.Widht / 2;
 
         _bounceAngle = GetRandomBounceAngle();
 
@@ -90,16 +69,20 @@ public class BallManager : MonoBehaviour
         _vy = BallMoveSpeed * -Mathf.Sign(_bounceAngle);
     }
 
-    // Update is called once per frame
+    /// <summary>
+    ///   Update is called once per frame
+    /// </summary>
     private void Update()
     {
-        if (_gamePlayManager.GameState != GamePlayManager.GameStateEnum.Paused)
-        {
-            MoveBall();
-            UpdateSpeedIncrease();
-        }
+        if (PlayManager.GameState == GamePlayManager.GameStateEnum.Paused) return;
+
+        MoveBall();
+        UpdateSpeedIncrease();
     }
 
+    /// <summary>
+    /// Update speed increece
+    /// </summary>
     private void UpdateSpeedIncrease()
     {
         if (_speedIncreaseTimer >= Config.SpeedIncreaseInterval)
@@ -115,7 +98,7 @@ public class BallManager : MonoBehaviour
                 BallMoveSpeed -= Config.SpeedIncreaseBy;
             }
 
-            _cpuPaddle.GetComponent<CpuPaddleManager>().IncreaceMoveSpeedBy();
+            gameObject.GetComponent<ColisionManager>().CpuPaddleManager.IncreaceMoveSpeedBy();
         }
         else
         {
@@ -123,118 +106,57 @@ public class BallManager : MonoBehaviour
         }
     }
 
-    private bool CheckCollision()
-    {
-        // The top & bottom edges of the paddles in motion:
-        _playerPaddleAttrs.MaxY = _playerPaddle.transform.localPosition.y + _playerPaddleAttrs.Height / 2;
-        _playerPaddleAttrs.MinY = _playerPaddle.transform.localPosition.y - _playerPaddleAttrs.Height / 2;
-
-        _cpuPaddleAttrs.MaxY = _cpuPaddle.transform.localPosition.y + _cpuPaddleAttrs.Height / 2;
-        _cpuPaddleAttrs.MinY = _cpuPaddle.transform.localPosition.y - _cpuPaddleAttrs.Height / 2;
-
-        var ballMaxX = transform.localPosition.x - _ballWidth / 2;
-        var ballMinX = transform.localPosition.x + _ballWidth / 2;
-
-        // check for x collision
-        if (ballMaxX < _playerPaddleAttrs.MaxX && ballMinX > _playerPaddleAttrs.MinX)
-        {
-            // then check for y collision
-            if (transform.localPosition.y - _ballHeight / 2 < _playerPaddleAttrs.MaxY &&
-                transform.localPosition.y + _ballHeight / 2 > _playerPaddleAttrs.MinY)
-            {
-                _collidedWithPlayer = true;
-                return true;
-            }
-
-            // if ball out bounce and screen recet ball position
-            if (Mathf.Abs(ballMaxX - _playerPaddleAttrs.MaxX) > 1 && !_isAssingnedPoint)
-            {
-                _isAssingnedPoint = true;
-                _gamePlayManager.IncreaceCpuPoint();
-            }
-        }
-
-        if (ballMinX > _cpuPaddleAttrs.MaxX && ballMaxX / 2 < _cpuPaddleAttrs.MinX)
-        {
-            if (transform.localPosition.y - _ballHeight / 2 < _cpuPaddleAttrs.MaxY &&
-                transform.localPosition.y + _ballHeight / 2 > _cpuPaddleAttrs.MinY)
-            {
-                _collidedWithAi = true;
-                return true;
-            }
-
-            // if ball out bounce and screen recet ball position
-            if (Mathf.Abs(ballMinX - _cpuPaddleAttrs.MaxX) > 1 && !_isAssingnedPoint)
-            {
-                _isAssingnedPoint = true;
-                _gamePlayManager.IncreacePlayerPoint();
-            }
-        }
-
-        if (transform.localPosition.y > Config.TopBounds)
-        {
-            _collidedWithWall = true;
-            return true;
-        }
-
-        if (transform.localPosition.y < Config.BottonBounds)
-        {
-            _collidedWithWall = true;
-            return true;
-        }
-
-        return false;
-    }
-
-
+    /// <summary>
+    ///  Move ball
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     private void MoveBall()
     {
-        if (CheckCollision())
+        var colisionManager = gameObject.GetComponent<ColisionManager>();
+        if (colisionManager.CheckCollision())
         {
             if (BallMoveSpeed < 0)
             {
                 BallMoveSpeed = -1 * BallMoveSpeed;
             }
 
-            if (_collidedWithPlayer)
+            switch (colisionManager.ColliderWith)
             {
-                _ballDirection.x = 1;
-                _collidedWithPlayer = false;
-
-                var relativeIntersectY = _playerPaddle.transform.localPosition.y - transform.localPosition.y;
-                var normalizeRalativeIntersectY = relativeIntersectY / (_playerPaddleAttrs.Height / 2);
-                _bounceAngle = normalizeRalativeIntersectY * (MaxAngle * Mathf.Deg2Rad);
-            }
-            else if (_collidedWithAi)
-            {
-                _ballDirection.x = -1;
-                _collidedWithAi = false;
-
-                var relativeIntersectY = _cpuPaddle.transform.localPosition.y - transform.localPosition.y;
-                var normalizeRalativeIntersectY = relativeIntersectY / (_cpuPaddleAttrs.Height / 2);
-                _bounceAngle = normalizeRalativeIntersectY * (MaxAngle * Mathf.Deg2Rad);
-            }
-            else if (_collidedWithWall)
-            {
-                _collidedWithWall = false;
-                _bounceAngle = -_bounceAngle;
+                case ColisionManager.ColliderWithEnum.Player:
+                    _ballDirection.x = 1;
+                    _bounceAngle = colisionManager.GetBounceAngle(GamePlayManager.PaddleState.Player);
+                    break;
+                
+                case ColisionManager.ColliderWithEnum.Cpu:
+                    _ballDirection.x = -1;  
+                    _bounceAngle = colisionManager.GetBounceAngle(GamePlayManager.PaddleState.Cpu);
+                    break;
+                
+                case ColisionManager.ColliderWithEnum.Wall:
+                    colisionManager.ColliderWith = ColisionManager.ColliderWithEnum.None;
+                    _bounceAngle = -_bounceAngle;
+                    break;
+                
+                case ColisionManager.ColliderWithEnum.None:
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
 
         _vx = BallMoveSpeed * Mathf.Cos(_bounceAngle);
-
-        if (BallMoveSpeed > 0)
-        {
-            _vy = BallMoveSpeed * -Mathf.Sin(_bounceAngle);
-        }
-        else
-        {
-            _vy = BallMoveSpeed * Mathf.Sin(_bounceAngle);
-        }
+        _vy = BallMoveSpeed > 0 ? BallMoveSpeed * -Mathf.Sin(_bounceAngle) : BallMoveSpeed * Mathf.Sin(_bounceAngle);
 
         transform.localPosition += new Vector3(BallDirection.x * _vx * Time.deltaTime, _vy * Time.deltaTime, 0);
     }
 
+    /// <summary>
+    /// Get random bounce angle
+    /// </summary>
+    /// <param name="minDegreese"></param>
+    /// <param name="maxDegreese"></param>
+    /// <returns></returns>
     private static float GetRandomBounceAngle(float minDegreese = 160f, float maxDegreese = 260f)
     {
         var minRad = minDegreese * Mathf.PI / 180;

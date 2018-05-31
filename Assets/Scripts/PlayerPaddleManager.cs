@@ -23,6 +23,10 @@ public class PlayerPaddleManager : MonoBehaviour
     /// </summary>
     private GamePlayManager _gamePlayManager;
 
+    /// <summary>
+    /// Player paddle attriibutes
+    /// </summary>
+    public PaddleAttrs PlayerPaddleAttrs;
 
     /// <summary>
     /// initialization
@@ -31,6 +35,20 @@ public class PlayerPaddleManager : MonoBehaviour
     {
         _gamePlayManager = _game.GetComponent<GamePlayManager>();
         transform.localPosition = _startingPosition;
+
+        var playerSprite = transform.GetComponent<SpriteRenderer>();
+
+        PlayerPaddleAttrs.Height = playerSprite.bounds.size.y;
+        PlayerPaddleAttrs.Widht = playerSprite.bounds.size.x;
+
+        PlayerPaddleAttrs.MaxX = transform.localPosition.x + PlayerPaddleAttrs.Widht / 2;
+        PlayerPaddleAttrs.MinX = transform.localPosition.x - PlayerPaddleAttrs.Widht / 2;
+    }
+
+    public void InitVerticalParams()
+    {
+        PlayerPaddleAttrs.MaxY = transform.localPosition.y + PlayerPaddleAttrs.Height / 2;
+        PlayerPaddleAttrs.MinY = transform.localPosition.y - PlayerPaddleAttrs.Height / 2;
     }
 
     /// <summary>
@@ -64,10 +82,10 @@ public class PlayerPaddleManager : MonoBehaviour
     /// </summary>
     private void MoveDown()
     {
-        if (transform.localPosition.y <= Model.Config.BottonBounds)
+        var position = transform.localPosition;
+        if (position.y <= Config.BottonBounds)
         {
-            transform.localPosition =
-                new Vector3(transform.localPosition.x, Model.Config.BottonBounds, transform.localPosition.z);
+            transform.localPosition = new Vector3(position.x, Config.BottonBounds, position.z);
         }
         else
         {
@@ -80,10 +98,10 @@ public class PlayerPaddleManager : MonoBehaviour
     /// </summary>
     private void MoveUp()
     {
-        if (transform.localPosition.y >= Model.Config.TopBounds)
+        var position = transform.localPosition;
+        if (position.y >= Config.TopBounds)
         {
-            transform.localPosition = new Vector3(transform.localPosition.x, Model.Config.TopBounds,
-                transform.localPosition.z);
+            transform.localPosition = new Vector3(position.x, Config.TopBounds, position.z);
         }
         else
         {
